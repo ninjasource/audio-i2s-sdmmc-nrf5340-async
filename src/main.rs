@@ -42,7 +42,7 @@ async fn main(spawner: Spawner) {
     config.frequency = spim::Frequency::M8;
     let irq = interrupt::take!(SERIAL3);
     let sdmmc_spi = spim::Spim::new(p.UARTETWISPI3, irq, p.P1_01, p.P1_05, p.P1_04, config);
-    let sdmmc_cs = Output::new(p.P1_00, Level::High, OutputDrive::Standard);
+    let sdmmc_cs = Output::new(p.P1_06, Level::High, OutputDrive::Standard);
 
     let (producer, mut consumer) = BB.try_split().unwrap();
 
@@ -57,8 +57,8 @@ async fn main(spawner: Spawner) {
     let irq = interrupt::take!(I2S0);
     let buffers = DoubleBuffering::<Sample, NUM_SAMPLES>::new();
     let mut output_stream =
-        I2S::master(p.I2S0, irq, p.P0_28, p.P0_29, p.P0_31, master_clock, config)
-            .output(p.P0_30, buffers);
+        I2S::master(p.I2S0, irq, p.P0_06, p.P0_07, p.P0_26, master_clock, config)
+            .output(p.P0_25, buffers);
     output_stream.start().await.expect("I2S Start");
 
     loop {
@@ -94,7 +94,7 @@ async fn main(spawner: Spawner) {
 #[embassy_executor::task]
 async fn reader(
     spi: Spim<'static, UARTETWISPI3>,
-    cs: Output<'static, P1_00>,
+    cs: Output<'static, P1_06>,
     mut producer: bbqueue::Producer<'static, BB_BYTES_LEN>,
 ) {
     let mut sd_card = sd::SdMmcSpi::new(spi, cs);
