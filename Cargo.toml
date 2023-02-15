@@ -1,0 +1,30 @@
+[package]
+name = "audio-i2s-sdmmc-nrf52840-async"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lc3-codec = { version = "0.2", default-features = false }
+bbqueue = "0.5.1"
+byteorder = { version = "1.4.3", default-features = false }
+defmt = "0.3"
+defmt-rtt = "0.4"
+embassy-executor = { version = "0.1.0", path = "../forks/embassy/embassy-executor", features = ["defmt", "integrated-timers"] }
+embassy-nrf = { version = "0.1.0", path = "../forks/embassy/embassy-nrf", features = ["defmt", "nrf5340-app-s", "time-driver-rtc1", "gpiote", "unstable-pac", "nightly", "unstable-traits"] }
+embassy-time = { version = "0.1.0", path = "../forks/embassy/embassy-time", features = ["defmt", "defmt-timestamp-uptime"] }
+#embassy-executor = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy.git", features = ["defmt", "integrated-timers"] }
+#embassy-nrf = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy.git", features = ["defmt", "nrf5340-app-s", "time-driver-rtc1", "gpiote", "unstable-pac", "nightly", "unstable-traits"] }
+#embassy-time = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy.git", features = ["defmt", "defmt-timestamp-uptime"] }
+
+panic-probe = { version = "0.3", features = ["print-defmt"] }
+cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7.0"
+# embedded-sdmmc-async = { git = "https://github.com/ninjasource/embedded-sdmmc-rs.git", branch = "add-async-support", features = ["defmt-log"], default-features = false }
+embedded-sdmmc-async = { path = "../forks/embedded-sdmmc-rs/embedded-sdmmc-async", features = ["defmt-log"], default-features = false }
+
+embedded-hal-async = { version = "=0.2.0-alpha.0"}
+embedded-hal = "0.2.7"
+
+[features]
+default = ["nightly" ]
+nightly = ["embassy-executor/nightly", "embassy-nrf/nightly",  "embassy-nrf/unstable-traits" ]

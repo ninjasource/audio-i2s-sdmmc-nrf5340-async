@@ -1,0 +1,8 @@
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+runner = "probe-run --chip nRF5340_xxAA"
+
+[build]
+target = "thumbv8m.main-none-eabihf" # = ARM Cortex-M33
+
+[env]
+DEFMT_LOG = "trace"
