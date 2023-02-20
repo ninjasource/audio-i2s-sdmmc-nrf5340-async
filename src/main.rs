@@ -12,7 +12,7 @@ use embassy_nrf::gpio::{Level, Output, OutputDrive};
 use embassy_nrf::i2s::{self, Channels, Config, DoubleBuffering, MasterClock, SampleWidth, I2S};
 use embassy_nrf::peripherals::*;
 use embassy_nrf::spim::Spim;
-use embassy_nrf::{interrupt, spim};
+use embassy_nrf::{interrupt, pac, spim};
 use embassy_time::{Duration, Instant, Timer};
 use embedded_sdmmc_async as sd;
 use lc3_codec::common::complex::Complex;
@@ -25,9 +25,9 @@ const BB_BYTES_LEN: usize = AUDIO_FRAME_BYTES_LEN * 6;
 static BB: BBBuffer<BB_BYTES_LEN> = BBBuffer::new();
 type Sample = i16;
 
-const NUM_SAMPLES: usize = 480;
+const NUM_SAMPLES: usize = 960;
 //const INPUT_FILE: &'static [u8] = include_bytes!("../../48khz_16bit_mono_10ms_150byte_piano.lc3");
-const FILE_FRAME_LEN: usize = 150;
+const FILE_FRAME_LEN: usize = 300;
 
 mod file_reader;
 use file_reader::FileReader;
@@ -35,8 +35,17 @@ use file_reader::FileReader;
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_nrf::init(Default::default());
-
     info!("Started");
+
+    // change app core clock from 64mhz to 128mhz
+    let clock: pac::CLOCK = unsafe { mem::transmute(()) };
+    clock.hfclkctrl.write(|w| w.hclk().div1());
+    info!("Set app core to 128mhz");
+
+    // enable flash cache
+    let cache: pac::CACHE = unsafe { mem::transmute(()) };
+    cache.enable.write(|w| w.enable().enabled());
+    info!("Enabled flash cache");
 
     // read SD card over SPI
     let mut config = spim::Config::default();
@@ -54,7 +63,7 @@ async fn main(spawner: Spawner) {
     info!("Sample rate: {}", sample_rate);
     let mut config = Config::default();
     config.sample_width = SampleWidth::_16bit;
-    config.channels = Channels::MonoLeft;
+    config.channels = Channels::Stereo;
     let irq = interrupt::take!(I2S0);
     let buffers = DoubleBuffering::<Sample, NUM_SAMPLES>::new();
     let mut output_stream =
@@ -100,13 +109,14 @@ async fn reader(
 ) {
     let mut sd_card = sd::SdMmcSpi::new(spi, cs);
     let block_device = sd_card.acquire().await.unwrap();
-    let mut file_reader = FileReader::new(block_device, "classmon.lc3");
+    let mut file_reader = FileReader::new(block_device, "classic.lc3");
     file_reader.open().await;
 
     // configure the LC3 decoder
-    const NUM_CH: usize = 1;
+    const NUM_CH: usize = 2;
     const FREQ: SamplingFrequency = SamplingFrequency::Hz48000;
     const DURATION: FrameDuration = FrameDuration::TenMs;
+
     // TODO: upgrade to use heapless pool for buffers (this is horrible)
     const SCALER_COMPLEX_LENS: (usize, usize) =
         Lc3Decoder::<NUM_CH>::calc_working_buffer_lengths(DURATION, FREQ);
@@ -119,7 +129,7 @@ async fn reader(
         });
 
     let mut dec_in_buffer = [0; FILE_FRAME_LEN];
-    let mut dec_out_buffer = [0; NUM_SAMPLES];
+    let mut dec_out_buffer = [0; NUM_SAMPLES / NUM_CH];
 
     info!("decoding");
     let mut stats = Stats::new();
@@ -127,21 +137,42 @@ async fn reader(
     loop {
         match producer.grant_exact(AUDIO_FRAME_BYTES_LEN) {
             Ok(mut wgr) => {
+                stats.start_frame();
+
                 // read a frame of audio data from the sd card
                 if !file_reader.read(&mut dec_in_buffer).await {
                     // start reading the file again
                     info!("start reading the file again");
                     continue;
                 }
-                stats.start_frame();
-                // decode a single channel
+
+                // set num bytes to be committed
+                wgr.to_commit(AUDIO_FRAME_BYTES_LEN);
+
+                // decode left channel
                 decoder
-                    .decode_frame(16, 0, &dec_in_buffer[..150], &mut dec_out_buffer)
+                    .decode_frame(
+                        16,
+                        0,
+                        &dec_in_buffer[..FILE_FRAME_LEN / NUM_CH],
+                        &mut dec_out_buffer,
+                    )
                     .unwrap();
 
-                // convert to bytes and copy to buffer in queue
-                wgr.to_commit(AUDIO_FRAME_BYTES_LEN);
-                LittleEndian::write_i16_into(&dec_out_buffer, wgr.buf());
+                encode_to_out_buf(&dec_out_buffer, wgr.buf());
+
+                // decode right channel
+                decoder
+                    .decode_frame(
+                        16,
+                        1,
+                        &dec_in_buffer[FILE_FRAME_LEN / NUM_CH..],
+                        &mut dec_out_buffer,
+                    )
+                    .unwrap();
+
+                // the pcm buffer (wgr) has L-R audio samples interleved
+                encode_to_out_buf(&dec_out_buffer, &mut wgr.buf()[2..]);
 
                 stats.calc_and_print_uptime();
             }
@@ -151,6 +182,17 @@ async fn reader(
                 Timer::after(Duration::from_micros(1000)).await;
             }
         }
+    }
+}
+
+fn encode_to_out_buf(decoder_buf: &[i16], pcm_buf: &mut [u8]) {
+    // take 2 bytes at a time and skip every second chunk
+    // we do this because this buffer is for stereo audio with L-R samples interleved
+    for (src, dst) in decoder_buf
+        .iter()
+        .zip(pcm_buf.chunks_exact_mut(2).step_by(2))
+    {
+        LittleEndian::write_i16(dst, *src);
     }
 }
 
