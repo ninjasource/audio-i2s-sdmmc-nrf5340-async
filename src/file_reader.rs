@@ -3,7 +3,7 @@ use embedded_hal::digital::v2::OutputPin;
 use embedded_hal_async::spi::SpiBus;
 
 use embedded_sdmmc_async::{
-    BlockSpi, Controller, File, Mode, TimeSource, Timestamp, Volume, VolumeIdx,
+    BlockSpi, Controller, Directory, File, Mode, TimeSource, Timestamp, Volume, VolumeIdx,
 };
 
 const SD_CARD_CHUNK_LEN: usize = 512;
@@ -17,6 +17,7 @@ where
     sd_controller: Controller<BlockSpi<'a, SPI, CS>, DummyTimeSource>,
     file: Option<File>,
     volume: Option<Volume>,
+    dir: Option<Directory>,
     read_index: usize,
     file_name: &'static str,
 }
@@ -43,6 +44,7 @@ where
             sd_controller,
             file: None,
             volume: None,
+            dir: None,
             read_index: 0,
             file_name,
         }
@@ -73,6 +75,7 @@ where
 
         self.file = Some(file);
         self.volume = Some(volume);
+        self.dir = Some(dir);
         self.read_index = 0;
     }
 
@@ -106,6 +109,7 @@ where
                 .read(volume, &mut file, &mut self.file_buffer)
                 .await
                 .unwrap();
+            self.file = Some(file);
 
             if len != SD_CARD_CHUNK_LEN {
                 // end of file reached, consume the file
@@ -113,8 +117,6 @@ where
                 self.close();
                 self.open().await;
                 return false;
-            } else {
-                self.file = Some(file);
             }
 
             let num_bytes_new = into_buf.len() - num_bytes;
@@ -126,9 +128,15 @@ where
     }
 
     fn close(&mut self) {
-        let file = self.file.take().expect("file not open");
-        self.sd_controller
-            .close_file(self.volume.as_ref().unwrap(), file)
-            .unwrap();
+        if let Some(file) = self.file.take() {
+            self.sd_controller
+                .close_file(self.volume.as_ref().unwrap(), file)
+                .unwrap();
+        }
+
+        if let Some(dir) = self.dir.take() {
+            self.sd_controller
+                .close_dir(self.volume.as_ref().unwrap(), dir);
+        }
     }
 }

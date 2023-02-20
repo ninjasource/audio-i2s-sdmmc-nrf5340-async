@@ -35,6 +35,7 @@ use file_reader::FileReader;
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_nrf::init(Default::default());
+
     info!("Started");
 
     // read SD card over SPI
@@ -126,15 +127,13 @@ async fn reader(
     loop {
         match producer.grant_exact(AUDIO_FRAME_BYTES_LEN) {
             Ok(mut wgr) => {
-                stats.start_frame();
-
                 // read a frame of audio data from the sd card
                 if !file_reader.read(&mut dec_in_buffer).await {
                     // start reading the file again
                     info!("start reading the file again");
                     continue;
                 }
-
+                stats.start_frame();
                 // decode a single channel
                 decoder
                     .decode_frame(16, 0, &dec_in_buffer[..150], &mut dec_out_buffer)
@@ -143,6 +142,7 @@ async fn reader(
                 // convert to bytes and copy to buffer in queue
                 wgr.to_commit(AUDIO_FRAME_BYTES_LEN);
                 LittleEndian::write_i16_into(&dec_out_buffer, wgr.buf());
+
                 stats.calc_and_print_uptime();
             }
             Err(_) => {

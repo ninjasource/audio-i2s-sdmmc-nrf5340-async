@@ -5,4 +5,4 @@ runner = "probe-run --chip nRF5340_xxAA"
 target = "thumbv8m.main-none-eabihf" # = ARM Cortex-M33
 
 [env]
-DEFMT_LOG = "trace"
+DEFMT_LOG = "info"

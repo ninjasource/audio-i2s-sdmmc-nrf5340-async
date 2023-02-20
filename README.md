@@ -11,4 +11,4 @@ cargo install --git https://github.com/knurling-rs/probe-run --branch erase-all
 
 Then, you need a special version of embassy to get you `i2s` functionality
 
-That can be found in the `https://github.com/ninjasource/embassy` fork in the `nrf5340-i2s` branch.
+That can be found in the `https://github.com/ninjasource/embassy` fork in the `i2s-nrf5340` branch.
