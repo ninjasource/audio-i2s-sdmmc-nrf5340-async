@@ -7,7 +7,7 @@ There is no performance difference between secure and non-secure mode, only deve
 
 For performance reasons the mcu is set to run at 128 MHz and flash cache is enabled.
 
-## Hardware Setup
+## Hardware setup
 
 ![Example Setup](https://github.com/ninjasource/audio-i2s-sdmmc-nrf5340-async/blob/main/nrf5340-sd-i2s.jpg?raw=true)
 
@@ -30,7 +30,7 @@ For performance reasons the mcu is set to run at 128 MHz and flash cache is enab
 
 NOTE: Any SPI compatible SD Card reader should work.
 
-## Software Setup
+## Software setup
 
 This does not run out of the box. You need a special version of probe-run that fixes the `erase_all` permission problem for the nrf5340 chip.
 You will most likely need to remove your existing version of `probe-run` before running the following:
@@ -49,6 +49,14 @@ Copy the `zane.lc3` file to the root folder of a `FAT32` formatted microSD card 
 
 Note that a forked version of the embassy library is used for `i2s` functionality as well as a forked version of the embedded-sdmmc-async library for async SD card reading.
 See Cargo.toml for more details.
+
+## To run
+
+```
+cargo run --release
+```
+
+This will use `probe-run` to flash the device and connect up fast RTT debug printing to the console.
 
 ## Other notes
 
