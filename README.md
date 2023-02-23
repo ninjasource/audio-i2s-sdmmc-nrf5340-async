@@ -1,5 +1,5 @@
-# audio-i2s-sdmmc-nrf5340-async
-Asynchronously reads LC3 Encoded audio off an SD card and plays it through the I2S audio peripheral using Embassy on an nrf5340 DK
+# Audio I2S SdMMC nrf5340 Async
+Asynchronously reads LC3 Encoded stereo audio off an SD card and plays it through the I2S audio peripheral using Embassy on an nrf5340 DK
 
 This application is configured to run on the app core in secure mode.
 This means that we do not require a boot loader to unlock the peripherals we need as everything is already unlocked.
