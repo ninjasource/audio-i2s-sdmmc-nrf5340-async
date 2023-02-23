@@ -1,4 +1,4 @@
-# Audio I2S SdMMC nrf5340 Async
+# Audio I2S SDMMC nrf5340 Async
 Asynchronously reads LC3 Encoded stereo audio off an SD card and plays it through the I2S audio peripheral using Embassy on an nrf5340 DK
 
 This application is configured to run on the app core in secure mode.
@@ -58,4 +58,3 @@ Just make sure the filenames are no more than 8 characters long (including the e
 ## Credits
 
 The audio file is a recording from the late jazz musician, Zane Musa. 
-The piece was chosen because it contains both a wind instrument (high spectral resolution) and castanets (high temporal resolution).

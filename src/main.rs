@@ -8,6 +8,7 @@ use bbqueue::BBBuffer;
 use byteorder::{ByteOrder, LittleEndian};
 use defmt::{error, info, unwrap};
 use embassy_executor::Spawner;
+use embassy_nrf::gpio::AnyPin;
 use embassy_nrf::{
     gpio::{Level, Output, OutputDrive},
     i2s::{self, Channels, Config, DoubleBuffering, MasterClock, SampleWidth, I2S},
@@ -62,10 +63,8 @@ async fn main(spawner: Spawner) {
     config.frequency = spim::Frequency::M8;
     let irq = interrupt::take!(SERIAL3);
     let sdmmc_spi = spim::Spim::new(p.UARTETWISPI3, irq, p.P1_01, p.P1_05, p.P1_04, config);
-    let sdmmc_cs = Output::new(p.P1_06, Level::High, OutputDrive::Standard);
-
-    // reads and decodes audio on another task
-    unwrap!(spawner.spawn(reader(sdmmc_spi, sdmmc_cs, producer)));
+    let cs: AnyPin = p.P1_06.into();
+    let sdmmc_cs = Output::new(cs, Level::High, OutputDrive::Standard);
 
     // setup the I2S peripheral
     let master_clock: MasterClock = i2s::ApproxSampleRate::_48000.into();
@@ -82,6 +81,9 @@ async fn main(spawner: Spawner) {
         I2S::master(p.I2S0, irq, p.P0_06, p.P0_07, p.P0_26, master_clock, config)
             .output(p.P0_25, buffers);
     output_stream.start().await.expect("I2S Start");
+
+    // reads and decodes audio on another task
+    unwrap!(spawner.spawn(reader(sdmmc_spi, sdmmc_cs, producer)));
 
     loop {
         // lock free read
@@ -116,7 +118,7 @@ async fn main(spawner: Spawner) {
 #[embassy_executor::task]
 async fn reader(
     spi: Spim<'static, UARTETWISPI3>,
-    cs: Output<'static, P1_06>,
+    cs: Output<'static, AnyPin>,
     mut producer: bbqueue::Producer<'static, BB_BYTES_LEN>,
 ) {
     let mut sd_card = sd::SdMmcSpi::new(spi, cs);
