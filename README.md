@@ -45,14 +45,17 @@ Also, make sure you have the correct target installed:
 rustup target add thumbv8m.main-none-eabihf
 ```
 
-Note that a forked version of embassy is used for `i2s` functionality as well as a forked version of the embedded-sdmmc-async library for async SD card reading.
+Copy the `zane.lc3` file to the root folder of a `FAT32` formatted microSD card which goes in the sd card reader above.
+
+Note that a forked version of the embassy library is used for `i2s` functionality as well as a forked version of the embedded-sdmmc-async library for async SD card reading.
 See Cargo.toml for more details.
 
 ## Other notes
 
-You can use the `lc3-codec` repo to create your own LC3 encoded files from wav files if you like. 
-Just make sure the filenames are no more than 8 characters long (including the extension) to play nicely with the FAT filesystem driver.
+You can use the `lc3-codec` repo to create your own LC3 encoded files from wav files if you like. See examples section.
+Just make sure the filenames are no more than 8 characters long (including the extension) to play nicely with the FAT32 filesystem driver.
 
 ## Credits
 
-The audio file is a recording from the late jazz musician, Zane Musa. The piece was chosen because it contains both a wind instrument and castanets.
+The audio file is a recording from the late jazz musician, Zane Musa. 
+The piece was chosen because it contains both a wind instrument (high spectral resolution) and castanets (high temporal resolution).
