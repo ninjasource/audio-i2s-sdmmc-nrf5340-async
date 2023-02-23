@@ -82,7 +82,7 @@ where
     // this function fills the `into_buf` with bytes (the exact amount in the buffer)
     // It reads the SD card in 512 KB chunks to prevent unecessary reads and keeps an
     // internal buffer to cache bytes for the next read call
-    pub async fn read(&mut self, into_buf: &mut [u8]) -> bool {
+    pub async fn read_exact(&mut self, into_buf: &mut [u8]) -> bool {
         let volume = self.volume.as_ref().expect("file not open");
 
         if into_buf.len() > self.file_buffer.len() {
