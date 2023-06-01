@@ -8,11 +8,12 @@ use bbqueue::BBBuffer;
 use byteorder::{ByteOrder, LittleEndian};
 use defmt::{error, info, unwrap};
 use embassy_executor::Spawner;
+use embassy_nrf::bind_interrupts;
 use embassy_nrf::gpio::AnyPin;
 use embassy_nrf::{
     gpio::{Level, Output, OutputDrive},
     i2s::{self, Channels, Config, DoubleBuffering, MasterClock, SampleWidth, I2S},
-    interrupt, pac,
+    pac,
     peripherals::*,
     spim::{self, Spim},
 };
@@ -40,6 +41,11 @@ const FILE_FRAME_LEN: usize = 400; // containing 2 channels of audio
 static BB: BBBuffer<BB_BYTES_LEN> = BBBuffer::new();
 type Sample = i16;
 
+bind_interrupts!(struct Irqs {
+    SERIAL3 => spim::InterruptHandler<SERIAL3>;
+    I2S0 => i2s::InterruptHandler<I2S0>;
+});
+
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_nrf::init(Default::default());
@@ -61,8 +67,7 @@ async fn main(spawner: Spawner) {
     // read SD card over SPI
     let mut config = spim::Config::default();
     config.frequency = spim::Frequency::M8;
-    let irq = interrupt::take!(SERIAL3);
-    let sdmmc_spi = spim::Spim::new(p.UARTETWISPI3, irq, p.P1_01, p.P1_05, p.P1_04, config);
+    let sdmmc_spi = spim::Spim::new(p.SERIAL3, Irqs, p.P1_01, p.P1_05, p.P1_04, config);
     let cs: AnyPin = p.P1_06.into();
     let sdmmc_cs = Output::new(cs, Level::High, OutputDrive::Standard);
 
@@ -73,13 +78,19 @@ async fn main(spawner: Spawner) {
     let mut config = Config::default();
     config.sample_width = SampleWidth::_16bit;
     config.channels = Channels::Stereo;
-    let irq = interrupt::take!(I2S0);
     let buffers = DoubleBuffering::<Sample, NUM_SAMPLES>::new();
 
     // NOTE: on the UDA1334A used here tje MCK is not connected even though it is specified below
-    let mut output_stream =
-        I2S::master(p.I2S0, irq, p.P0_06, p.P0_07, p.P0_26, master_clock, config)
-            .output(p.P0_25, buffers);
+    let mut output_stream = I2S::new_master(
+        p.I2S0,
+        Irqs,
+        p.P0_06,
+        p.P0_07,
+        p.P0_26,
+        master_clock,
+        config,
+    )
+    .output(p.P0_25, buffers);
     output_stream.start().await.expect("I2S Start");
 
     // reads and decodes audio on another task
@@ -117,7 +128,7 @@ async fn main(spawner: Spawner) {
 
 #[embassy_executor::task]
 async fn reader(
-    spi: Spim<'static, UARTETWISPI3>,
+    spi: Spim<'static, SERIAL3>,
     cs: Output<'static, AnyPin>,
     mut producer: bbqueue::Producer<'static, BB_BYTES_LEN>,
 ) {

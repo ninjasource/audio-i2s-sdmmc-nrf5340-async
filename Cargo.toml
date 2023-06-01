@@ -12,20 +12,20 @@ defmt-rtt = "0.4"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.0"
-embedded-hal-async = { version = "=0.2.0-alpha.0"}
+embedded-hal-async = { version = "0.2.0-alpha.1", default-features = false }
 embedded-hal = "0.2.7"
-embassy-executor = { version = "0.1.0", git = "https://github.com/ninjasource/embassy.git", branch = "i2s-nrf5340", features = ["defmt", "integrated-timers", "nightly"] }
-embassy-nrf = { version = "0.1.0", git = "https://github.com/ninjasource/embassy.git", branch = "i2s-nrf5340", features = ["defmt", "nrf5340-app-s", "time-driver-rtc1", "gpiote", "unstable-pac", "nightly", "unstable-traits"] }
-embassy-time = { version = "0.1.0", git = "https://github.com/ninjasource/embassy.git", branch = "i2s-nrf5340", features = ["defmt", "defmt-timestamp-uptime"] }
+embassy-executor = { version = "0.1.1", git = "https://github.com/ninjasource/embassy.git", branch = "i2s-nrf5340", features = ["arch-cortex-m", "executor-thread", "nightly", "defmt", "integrated-timers"] }
+embassy-nrf = { version = "0.1.0", git = "https://github.com/ninjasource/embassy.git", branch = "i2s-nrf5340", features = ["defmt", "nrf5340-app-s", "time-driver-rtc1", "gpiote", "unstable-pac", "nightly", "unstable-traits", "nfc-pins-as-gpio"] }
+embassy-time = { version = "0.1.1", git = "https://github.com/ninjasource/embassy.git", branch = "i2s-nrf5340", features = ["defmt", "defmt-timestamp-uptime"] }
 embedded-sdmmc-async = { git = "https://github.com/ninjasource/embedded-sdmmc-rs.git", branch = "add-async-support", features = ["defmt-log"], default-features = false }
 
-[patch."https://github.com/ninjasource/embedded-sdmmc-rs.git"]
-embedded-sdmmc-async = { path = "../forks/embedded-sdmmc-rs/embedded-sdmmc-async" }
+# [patch."https://github.com/ninjasource/embedded-sdmmc-rs.git"]
+# embedded-sdmmc-async = { path = "../forks/embedded-sdmmc-rs/embedded-sdmmc-async" }
 
-[patch."https://github.com/ninjasource/embassy.git"]
-embassy-executor = { path = "../forks/embassy/embassy-executor"}
-embassy-nrf = { path = "../forks/embassy/embassy-nrf" }
-embassy-time = { path = "../forks/embassy/embassy-time" }
+# [patch."https://github.com/ninjasource/embassy.git"]
+# embassy-executor = { path = "../forks/embassy/embassy-executor"}
+# embassy-nrf = { path = "../forks/embassy/embassy-nrf" }
+# embassy-time = { path = "../forks/embassy/embassy-time" }
 
 [profile.release]
 debug = true

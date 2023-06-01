@@ -1,5 +1,9 @@
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
-runner = "probe-run --chip nRF5340_xxAA"
+runner = "probe-run --chip nRF5340_xxAA --erase-all"
+# Toubleshooting notes:
+# At the time of writing there is a small issue with probe-run where it takes tens of seconds to perform a chip erase on the nrf5340. 
+# The fork and branch below "fixes" this:
+# https://github.com/ninjasource/probe-run.git branch erase-all-fix
 
 [build]
 target = "thumbv8m.main-none-eabihf" # = ARM Cortex-M33
